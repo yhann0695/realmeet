@@ -26,3 +26,6 @@ logging:
   level:
     org.springframework: ERROR
     org.flywaydb: ERROR
+
+jpa:
+  show-sql: true
