@@ -61,5 +61,4 @@ class RoomServiceUnitTest extends BaseUnitTest {
 
         verify(roomRepository).save(any());
     }
-
 }
