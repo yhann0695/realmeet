@@ -13,6 +13,8 @@ public final class TestConstants {
     public static final String DEFAULT_EMPLOYEE_EMAIL = "john@email.com";
     public static final OffsetDateTime DEFAULT_ALLOCATION_START_AT = now().plusDays(1);
     public static final OffsetDateTime DEFAULT_ALLOCATION_END_AT = DEFAULT_ALLOCATION_START_AT.plusHours(1);
+    public static final long DEFAULT_ALLOCATION_ID = 1L;
+
 
     private TestConstants() {}
 }
