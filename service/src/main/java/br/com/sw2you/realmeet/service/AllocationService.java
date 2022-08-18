@@ -1,6 +1,10 @@
 package br.com.sw2you.realmeet.service;
 
+import static br.com.sw2you.realmeet.domain.entity.Allocation.SORTABLE_FIELDS;
+import static br.com.sw2you.realmeet.util.Constants.ALLOCATION_MAX_FILTER_LIMIT;
 import static br.com.sw2you.realmeet.util.DateUtils.*;
+import static br.com.sw2you.realmeet.util.PageUtils.*;
+import static java.util.Objects.nonNull;
 
 import br.com.sw2you.realmeet.api.model.AllocationDTO;
 import br.com.sw2you.realmeet.api.model.CreateAllocationDTO;
@@ -13,8 +17,13 @@ import br.com.sw2you.realmeet.exception.AllocationCannotBeUpdateException;
 import br.com.sw2you.realmeet.exception.AllocationNotFoundException;
 import br.com.sw2you.realmeet.exception.RoomNotFoundException;
 import br.com.sw2you.realmeet.mapper.AllocationMapper;
-import br.com.sw2you.realmeet.util.DateUtils;
 import br.com.sw2you.realmeet.validator.AllocationValidator;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,17 +33,20 @@ public class AllocationService {
     private final AllocationRepository allocationRepository;
     private final AllocationMapper allocationMapper;
     private final AllocationValidator allocationValidator;
+    private final int maxLimit;
 
     public AllocationService(
             RoomRepository roomRepository,
             AllocationRepository allocationRepository,
             AllocationMapper allocationMapper,
-            AllocationValidator allocationValidator
+            AllocationValidator allocationValidator,
+            @Value(ALLOCATION_MAX_FILTER_LIMIT) int maxLimit
     ) {
         this.roomRepository = roomRepository;
         this.allocationRepository = allocationRepository;
         this.allocationMapper = allocationMapper;
         this.allocationValidator = allocationValidator;
+        this.maxLimit = maxLimit;
     }
 
     public AllocationDTO createAllocation(CreateAllocationDTO createAllocationDTO) {
@@ -70,7 +82,7 @@ public class AllocationService {
         if (isAllocationInThePast(allocation))
             throw new AllocationCannotBeUpdateException();
 
-        allocationValidator.validate(allocationId, updateAllocationDTO);
+        allocationValidator.validate(allocationId, allocation.getRoom().getId(), updateAllocationDTO);
         allocationRepository.updateAllocation(
                 allocationId,
                 updateAllocationDTO.getSubject(),
@@ -84,5 +96,27 @@ public class AllocationService {
                 .orElseThrow(
                         () -> new AllocationNotFoundException("Allocation not found: " + allocationId)
                 );
+    }
+
+    public List<AllocationDTO> listAllocation(
+            String employeeEmail,
+            Long roomId,
+            LocalDate startAt,
+            LocalDate endAt,
+            String orderBy,
+            Integer limit,
+            Integer page
+    ) {
+        Pageable pageable = newPageable(page, limit, maxLimit, orderBy, SORTABLE_FIELDS);
+
+        var allocations = allocationRepository.findAllWithFilters(
+                employeeEmail,
+                roomId,
+                nonNull(startAt) ? startAt.atTime(LocalTime.MIN).atOffset(DEFAULT_TIMEZONE) : null,
+                nonNull(endAt) ? endAt.atTime(LocalTime.MIN).atOffset(DEFAULT_TIMEZONE) : null,
+                pageable
+        );
+
+       return allocations.stream().map(allocationMapper::fromEntityToAllocationDTO).collect(Collectors.toList());
     }
 }

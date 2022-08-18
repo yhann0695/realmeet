@@ -29,3 +29,10 @@ logging:
 
 jpa:
   show-sql: true
+
+# =================================
+# = Logging
+# =================================
+realmeet:
+  allocations:
+    maxFilterLimit: 50
